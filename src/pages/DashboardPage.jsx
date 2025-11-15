@@ -12,7 +12,7 @@ function DashboardPage() {
 
   // ... fetchClients, handleCreateClient, handleDeleteClient ...
   // (No changes to the other functions)
-  
+  const [invoices, setInvoices] = useState([]);
   // (You can copy the functions from your file here)
   useEffect(() => {
     const fetchClients = async () => {
@@ -30,7 +30,22 @@ function DashboardPage() {
         setError(err.response?.data?.error || 'Failed to fetch clients');
       }
     };
-    fetchClients();
+    const fetchInvoices = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) return; // Error is already set by fetchClients
+
+        const response = await api.get('/invoices/getInvoices', { // 👈 Use your invoice route
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        setInvoices(response.data);
+      } catch (err) {
+        console.error("Failed to fetch invoices:", err);
+        setError(err.response?.data?.error || 'Failed to fetch invoices');
+      }
+    };
+    fetchClients(),
+    fetchInvoices();
   }, []);
 
   const handleCreateClient = async (event) => {
@@ -108,63 +123,83 @@ function DashboardPage() {
   return (
     <div>
       <h1>Your Dashboard</h1>
-
-      {/* --- Create Client Form (No Change) --- */}
-      <h2>Create New Client</h2>
-      <form onSubmit={handleCreateClient}>
-        <input
-          type="text"
-          value={newClientName}
-          onChange={(e) => setNewClientName(e.targe.value)}
-          placeholder="New client name"
-          required
-        />
-        <button type="submit">Add Client</button>
-      </form>
-
-      <h2>Your Clients</h2>
       {error && <p style={{ color: 'red' }}>{error}</p>}
-      
-      <ul>
-        {clients.length > 0 ? (
-          clients.map(client => (
-            <li key={client.id}>
-              {/* --- NEW CONDITIONAL RENDERING --- */}
-              {editingClientId === client.id ? (
-                // --- We are in EDIT MODE for this client ---
-                <>
-                  <input 
-                    type="text"
-                    value={editingClientName}
-                    onChange={(e) => setEditingClientName(e.target.value)}
-                  />
-                  <button onClick={() => handleUpdateClient(client.id)}>Save</button>
-                  <button onClick={() => setEditingClientId(null)}>Cancel</button>
-                </>
-              ) : (
-                // --- We are in READ MODE for this client ---
-                <>
-                  {client.name}
-                  <button 
-                    onClick={() => handleEditClick(client)} 
-                    style={{ marginLeft: '10px' }}
-                  >
-                    Edit
-                  </button>
-                  <button 
-                    onClick={() => handleDeleteClient(client.id)} 
-                    style={{ marginLeft: '10px' }}
-                  >
-                    Delete
-                  </button>
-                </>
-              )}
-            </li>
-          ))
-        ) : (
-          <p>You have no clients yet.</p>
-        )}
-      </ul>
+
+      {/* --- CLIENTS SECTION --- */}
+      <div>
+        <h2>Create New Client</h2>
+        <form onSubmit={handleCreateClient}>
+          <input
+            type="text"
+            value={newClientName}
+            onChange={(e) => setNewClientName(e.target.value)}
+            placeholder="New client name"
+            required
+          />
+          <button type="submit">Add Client</button>
+        </form>
+
+        <h2>Your Clients</h2>
+        <ul>
+          {clients.length > 0 ? (
+            clients.map(client => (
+              <li key={client.id}>
+                {editingClientId === client.id ? (
+                  // --- Edit Mode for Clients ---
+                  <>
+                    <input
+                      type="text"
+                      value={editingClientName}
+                      onChange={(e) => setEditingClientName(e.target.value)}
+                    />
+                    <button onClick={() => handleUpdateClient(client.id)}>Save</button>
+                    <button onClick={() => setEditingClientId(null)}>Cancel</button>
+                  </>
+                ) : (
+                  // --- Read Mode for Clients ---
+                  <>
+                    {client.name}
+                    <button
+                      onClick={() => handleEditClick(client)}
+                      style={{ marginLeft: '10px' }}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => handleDeleteClient(client.id)}
+                      style={{ marginLeft: '10px' }}
+                    >
+                      Delete
+                    </button>
+                  </>
+                )}
+              </li>
+            ))
+          ) : (
+            <p>You have no clients yet.</p>
+          )}
+        </ul>
+      </div>
+
+      <hr /> {/* Visual separator */}
+
+      {/* --- INVOICES SECTION --- */}
+      <div>
+        <h2>Your Invoices</h2>
+        {/* We will add the "Create Invoice" form here next */}
+        <ul>
+          {invoices.length > 0 ? (
+            invoices.map(invoice => (
+              <li key={invoice.id}>
+                Client ID: {invoice.clientId} - Amount: ${invoice.amount} - Status: {invoice.status}
+                {/* We will add Edit/Delete buttons here */}
+              </li>
+            ))
+          ) : (
+            <p>You have no invoices yet.</p>
+          )}
+        </ul>
+      </div>
     </div>
   );
 }
