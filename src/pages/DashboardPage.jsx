@@ -14,6 +14,10 @@ function DashboardPage() {
   // (No changes to the other functions)
   const [invoices, setInvoices] = useState([]);
   // (You can copy the functions from your file here)
+  // --- NEW: Invoice Form State ---
+  const [newInvoiceAmount, setNewInvoiceAmount] = useState(0);
+  const [newInvoiceClientId, setNewInvoiceClientId] = useState('');
+  const [newInvoiceStatus, setNewInvoiceStatus] = useState('DRAFT'); // Default to DRAFT
   useEffect(() => {
     const fetchClients = async () => {
       try {
@@ -119,16 +123,55 @@ function DashboardPage() {
       setError(err.response?.data?.error || 'Failed to update client');
     }
   };
+  // --- NEW: Handle Create Invoice Function ---
+  const handleCreateInvoice = async (event) => {
+    event.preventDefault();
+    setError('');
+
+    if (!newInvoiceClientId) {
+      setError('Please select a client.');
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      
+      const response = await api.post(
+        '/invoices/createInvoice', // Your backend route for creating invoices
+        { 
+          amount: Number(newInvoiceAmount), // Ensure amount is a number
+          clientId: newInvoiceClientId,
+          status: newInvoiceStatus
+        },
+        { headers: { 'Authorization': `Bearer ${token}` } }
+      );
+
+      // Add the new invoice to the list
+      setInvoices(prevInvoices => [...prevInvoices, response.data]);
+
+      // Reset the form
+      setNewInvoiceAmount(0);
+      setNewInvoiceClientId('');
+      setNewInvoiceStatus('DRAFT');
+
+    } catch (err) {
+      console.error('Failed to create invoice:', err);
+      // This will display the Zod error message from your backend!
+      const errorMsg = err.response?.data?.errors?.[0]?.message || 'Failed to create invoice';
+      setError(errorMsg);
+    }
+  };
 
   return (
     <div>
       <h1>Your Dashboard</h1>
       {error && <p style={{ color: 'red' }}>{error}</p>}
-
+      
       {/* --- CLIENTS SECTION --- */}
       <div>
         <h2>Create New Client</h2>
         <form onSubmit={handleCreateClient}>
+          {/* ... client create form ... */}
           <input
             type="text"
             value={newClientName}
@@ -141,13 +184,13 @@ function DashboardPage() {
 
         <h2>Your Clients</h2>
         <ul>
+          {/* ... client list map ... */}
           {clients.length > 0 ? (
             clients.map(client => (
               <li key={client.id}>
                 {editingClientId === client.id ? (
-                  // --- Edit Mode for Clients ---
                   <>
-                    <input
+                    <input 
                       type="text"
                       value={editingClientName}
                       onChange={(e) => setEditingClientName(e.target.value)}
@@ -156,17 +199,16 @@ function DashboardPage() {
                     <button onClick={() => setEditingClientId(null)}>Cancel</button>
                   </>
                 ) : (
-                  // --- Read Mode for Clients ---
                   <>
                     {client.name}
-                    <button
-                      onClick={() => handleEditClick(client)}
+                    <button 
+                      onClick={() => handleEditClick(client)} 
                       style={{ marginLeft: '10px' }}
                     >
                       Edit
                     </button>
-                    <button
-                      onClick={() => handleDeleteClient(client.id)}
+                    <button 
+                      onClick={() => handleDeleteClient(client.id)} 
                       style={{ marginLeft: '10px' }}
                     >
                       Delete
@@ -181,18 +223,57 @@ function DashboardPage() {
         </ul>
       </div>
 
-      <hr /> {/* Visual separator */}
+      <hr />
 
       {/* --- INVOICES SECTION --- */}
       <div>
+        <h2>Create New Invoice</h2>
+        {/* --- NEW: Invoice Create Form --- */}
+        <form onSubmit={handleCreateInvoice}>
+          <div>
+            <label>Client: </label>
+            <select 
+              value={newInvoiceClientId} 
+              onChange={(e) => setNewInvoiceClientId(e.target.value)}
+              required
+            >
+              <option value="" disabled>Select a client</option>
+              {clients.map(client => (
+                <option key={client.id} value={client.id}>
+                  {client.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label>Amount: $</label>
+            <input 
+              type="number"
+              value={newInvoiceAmount}
+              onChange={(e) => setNewInvoiceAmount(e.target.value)}
+              required
+            />
+          </div>
+          <div>
+            <label>Status: </label>
+            <select 
+              value={newInvoiceStatus} 
+              onChange={(e) => setNewInvoiceStatus(e.target.value)}
+            >
+              <option value="DRAFT">Draft</option>
+              <option value="SENT">Sent</option>
+              <option value="PAID">Paid</option>
+            </select>
+          </div>
+          <button type="submit">Create Invoice</button>
+        </form>
+
         <h2>Your Invoices</h2>
-        {/* We will add the "Create Invoice" form here next */}
         <ul>
           {invoices.length > 0 ? (
             invoices.map(invoice => (
               <li key={invoice.id}>
-                Client ID: {invoice.clientId} - Amount: ${invoice.amount} - Status: {invoice.status}
-                {/* We will add Edit/Delete buttons here */}
+                Client ID: {invoice.clientId} | Amount: ${invoice.amount} | Status: {invoice.status}
               </li>
             ))
           ) : (
