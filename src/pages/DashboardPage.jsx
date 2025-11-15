@@ -59,12 +59,34 @@ function DashboardPage() {
       setError(err.response?.data?.error || 'Failed to create client');
     }
   };
+// --- NEW FUNCTION TO HANDLE DELETING A CLIENT ---
+  const handleDeleteClient = async (clientId) => {
+    setError(''); // Clear old errors
+
+    try {
+      const token = localStorage.getItem('token');
+      
+      // 1. Make the DELETE request
+      await api.delete(
+        `/clients/deleteClient/${clientId}`, // Your backend route
+        { headers: { 'Authorization': `Bearer ${token}` } }
+      );
+
+      // 2. Update the UI instantly by filtering out the deleted client
+      setClients(prevClients => 
+        prevClients.filter(client => client.id !== clientId)
+      );
+
+    } catch (err) {
+      console.error('Failed to delete client:', err);
+      setError(err.response?.data?.error || 'Failed to delete client');
+    }
+  };
 
   return (
     <div>
       <h1>Your Dashboard</h1>
 
-      {/* --- New Client Form --- */}
       <h2>Create New Client</h2>
       <form onSubmit={handleCreateClient}>
         <input
@@ -76,7 +98,6 @@ function DashboardPage() {
         />
         <button type="submit">Add Client</button>
       </form>
-      {/* --------------------- */}
 
       <h2>Your Clients</h2>
       {error && <p style={{ color: 'red' }}>{error}</p>}
@@ -84,7 +105,17 @@ function DashboardPage() {
       <ul>
         {clients.length > 0 ? (
           clients.map(client => (
-            <li key={client.id}>{client.name}</li>
+            // --- UPDATED LIST ITEM ---
+            <li key={client.id}>
+              {client.name}
+              {/* Add a delete button next to each client */}
+              <button 
+                onClick={() => handleDeleteClient(client.id)} 
+                style={{ marginLeft: '10px' }}
+              >
+                Delete
+              </button>
+            </li>
           ))
         ) : (
           <p>You have no clients yet.</p>
