@@ -1,9 +1,7 @@
 import React from 'react'
 import { Routes, Route } from 'react-router-dom'
+import LoginPage from './pages/LoginPage'
 
-// We will create these pages in the next step
-// For now, they are just placeholders
-const LoginPage = () => <div>Login Page</div>
 const RegisterPage = () => <div>Register Page</div>
 const DashboardPage = () => <div>Dashboard</div>
 
