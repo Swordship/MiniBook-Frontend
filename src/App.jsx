@@ -5,8 +5,6 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import ProtectedRoute from './components/ProtectedRoute';
 
-// We'll create this one for real in the next phase
-const DashboardPage = () => <div>THIS IS A PROTECTED DASHBOARD</div>;
 
 function App() {
   return (
