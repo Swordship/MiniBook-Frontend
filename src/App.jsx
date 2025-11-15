@@ -4,7 +4,7 @@ import { Routes, Route } from 'react-router-dom';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import ProtectedRoute from './components/ProtectedRoute';
-
+import DashboardPage from './pages/DashboardPage';
 
 function App() {
   return (
