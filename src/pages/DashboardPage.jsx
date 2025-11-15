@@ -4,82 +4,104 @@ import api from '../services/api';
 function DashboardPage() {
   const [clients, setClients] = useState([]);
   const [error, setError] = useState('');
-
-  // --- New state for the form ---
   const [newClientName, setNewClientName] = useState('');
-  useEffect(() => {
-  const fetchClients = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        setError('No token found. Please log in.');
-        return;
-      }
 
-      const response = await api.get('/clients/getClients', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      
-      setClients(response.data);
-    } catch (err) {
-      console.error('Failed to fetch clients:', err);
-      setError(err.response?.data?.error || 'Failed to fetch clients');
-    }
-  };
+  // --- NEW STATE FOR EDITING ---
+  const [editingClientId, setEditingClientId] = useState(null); // Tracks which client is being edited
+  const [editingClientName, setEditingClientName] = useState(''); // Tracks the text in the edit input
 
-  // Run fetchClients when the component loads
+  // ... fetchClients, handleCreateClient, handleDeleteClient ...
+  // (No changes to the other functions)
   
+  // (You can copy the functions from your file here)
+  useEffect(() => {
+    const fetchClients = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          setError('No token found. Please log in.');
+          return;
+        }
+        const response = await api.get('/clients/getClients', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        setClients(response.data);
+      } catch (err) {
+        setError(err.response?.data?.error || 'Failed to fetch clients');
+      }
+    };
     fetchClients();
   }, []);
 
-  // --- New function to handle creating a client ---
   const handleCreateClient = async (event) => {
-    event.preventDefault(); // Stop the form from reloading the page
-    setError(''); // Clear old errors
-
+    event.preventDefault();
+    setError('');
     try {
       const token = localStorage.getItem('token');
-      
-      // 1. Make the POST request
       const response = await api.post(
-        '/clients/createClients', // Your backend route
-        { name: newClientName },   // The data to send
+        '/clients/createClients',
+        { name: newClientName },
         { headers: { 'Authorization': `Bearer ${token}` } }
       );
-
-      // 2. Add the new client to the list in state
-      // This makes the UI update instantly!
       setClients(prevClients => [...prevClients, response.data]);
-      
-      // 3. Clear the input box
       setNewClientName('');
-
     } catch (err) {
-      console.error('Failed to create client:', err);
       setError(err.response?.data?.error || 'Failed to create client');
     }
   };
-// --- NEW FUNCTION TO HANDLE DELETING A CLIENT ---
-  const handleDeleteClient = async (clientId) => {
-    setError(''); // Clear old errors
 
+  const handleDeleteClient = async (clientId) => {
+    setError('');
     try {
       const token = localStorage.getItem('token');
-      
-      // 1. Make the DELETE request
       await api.delete(
-        `/clients/deleteClient/${clientId}`, // Your backend route
+        `/clients/deleteClient/${clientId}`,
         { headers: { 'Authorization': `Bearer ${token}` } }
       );
-
-      // 2. Update the UI instantly by filtering out the deleted client
       setClients(prevClients => 
         prevClients.filter(client => client.id !== clientId)
       );
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to delete client');
+    }
+  };
+
+  // --- NEW FUNCTIONS FOR EDITING ---
+
+  // Called when the "Edit" button is clicked
+  const handleEditClick = (client) => {
+    setEditingClientId(client.id);
+    setEditingClientName(client.name); // Pre-fill the input with the client's current name
+  };
+
+  // Called when the "Save" button is clicked
+  const handleUpdateClient = async (clientId) => {
+    setError('');
+    try {
+      const token = localStorage.getItem('token');
+      
+      // 1. Make the PUT request
+      await api.put(
+        `/clients/updateClient/${clientId}`,
+        { name: editingClientName }, // Send the new name
+        { headers: { 'Authorization': `Bearer ${token}` } }
+      );
+
+      // 2. Update the UI instantly
+      setClients(prevClients =>
+        prevClients.map(client =>
+          client.id === clientId 
+            ? { ...client, name: editingClientName } // Found it? Return a *new* object with the updated name
+            : client // Not the one? Return it unchanged
+        )
+      );
+
+      // 3. Exit editing mode
+      setEditingClientId(null);
 
     } catch (err) {
-      console.error('Failed to delete client:', err);
-      setError(err.response?.data?.error || 'Failed to delete client');
+      console.error('Failed to update client:', err);
+      setError(err.response?.data?.error || 'Failed to update client');
     }
   };
 
@@ -87,12 +109,13 @@ function DashboardPage() {
     <div>
       <h1>Your Dashboard</h1>
 
+      {/* --- Create Client Form (No Change) --- */}
       <h2>Create New Client</h2>
       <form onSubmit={handleCreateClient}>
         <input
           type="text"
           value={newClientName}
-          onChange={(e) => setNewClientName(e.target.value)}
+          onChange={(e) => setNewClientName(e.targe.value)}
           placeholder="New client name"
           required
         />
@@ -105,16 +128,37 @@ function DashboardPage() {
       <ul>
         {clients.length > 0 ? (
           clients.map(client => (
-            // --- UPDATED LIST ITEM ---
             <li key={client.id}>
-              {client.name}
-              {/* Add a delete button next to each client */}
-              <button 
-                onClick={() => handleDeleteClient(client.id)} 
-                style={{ marginLeft: '10px' }}
-              >
-                Delete
-              </button>
+              {/* --- NEW CONDITIONAL RENDERING --- */}
+              {editingClientId === client.id ? (
+                // --- We are in EDIT MODE for this client ---
+                <>
+                  <input 
+                    type="text"
+                    value={editingClientName}
+                    onChange={(e) => setEditingClientName(e.target.value)}
+                  />
+                  <button onClick={() => handleUpdateClient(client.id)}>Save</button>
+                  <button onClick={() => setEditingClientId(null)}>Cancel</button>
+                </>
+              ) : (
+                // --- We are in READ MODE for this client ---
+                <>
+                  {client.name}
+                  <button 
+                    onClick={() => handleEditClick(client)} 
+                    style={{ marginLeft: '10px' }}
+                  >
+                    Edit
+                  </button>
+                  <button 
+                    onClick={() => handleDeleteClient(client.id)} 
+                    style={{ marginLeft: '10px' }}
+                  >
+                    Delete
+                  </button>
+                </>
+              )}
             </li>
           ))
         ) : (
