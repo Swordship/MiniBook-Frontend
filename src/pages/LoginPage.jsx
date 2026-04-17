@@ -1,60 +1,58 @@
 import React, { useState } from 'react';
-import api from '../services/api'; // 👈 Import the api service
-import { useNavigate } from 'react-router-dom'; // 👈 Import useNavigate
-function LoginPage() {
-  const [email, setEmail] = useState('');
+import api from '../services/api';
+import { useNavigate, Link } from 'react-router-dom';
+
+export default function LoginPage() {
+  const [email,    setEmail]    = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState(''); // State for error messages
+  const [error,    setError]    = useState('');
+  const [loading,  setLoading]  = useState(false);
   const navigate = useNavigate();
 
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-    setError('');
-
+  const handleSubmit = async (e) => {
+    e.preventDefault(); setError(''); setLoading(true);
     try {
-      const response = await api.post('/auth/login', {
-        email: email,
-        password: password,
-      });
-
-      localStorage.setItem('token', response.data.token);
-      
-      // 3. Redirect to the dashboard
-      navigate('/dashboard'); 
-
+      const r = await api.post('/auth/login', { email, password });
+      localStorage.setItem('token', r.data.token);
+      navigate('/dashboard');
     } catch (err) {
-      console.error('Login failed:', err);
       setError(err.response?.data?.error || 'Login failed. Please try again.');
-    }
+    } finally { setLoading(false); }
   };
 
   return (
-    <div>
-      <h1>Login</h1>
-      <form onSubmit={handleSubmit}>
-        <div>
-          <label>Email:</label>
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
+    <div className="auth-page">
+      <div className="auth-box">
+        <div className="auth-brand">
+          <div className="brand-icon">📒</div>
+          <span className="brand-name">MiniBook</span>
         </div>
-        <div>
-          <label>Password:</label>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
+
+        <h1 className="auth-heading">Welcome back</h1>
+        <p className="auth-sub">Sign in to your account to continue</p>
+
+        {error && <div className="alert alert-error">{error}</div>}
+
+        <form onSubmit={handleSubmit}>
+          <div className="field">
+            <label className="field-label">Email address</label>
+            <input className="field-input" type="email" placeholder="you@example.com"
+              value={email} onChange={e => setEmail(e.target.value)} required />
+          </div>
+          <div className="field">
+            <label className="field-label">Password</label>
+            <input className="field-input" type="password" placeholder="••••••••"
+              value={password} onChange={e => setPassword(e.target.value)} required />
+          </div>
+          <button className="btn btn-primary btn-full" type="submit" disabled={loading}>
+            {loading ? 'Signing in...' : 'Sign in →'}
+          </button>
+        </form>
+
+        <div className="auth-switch">
+          Don't have an account? <Link to="/register">Create one</Link>
         </div>
-        {error && <p style={{ color: 'red' }}>{error}</p>}
-        <button type="submit">Login</button>
-      </form>
+      </div>
     </div>
   );
 }
-
-export default LoginPage;
